@@ -1,0 +1,23 @@
+# Core
+Django>=5.0,<5.2
+djangorestframework>=3.15
+
+# Async / queue
+celery>=5.3
+redis>=5.0
+
+# Database
+psycopg[binary]>=3.1
+
+# Config & security
+django-environ>=0.11
+cryptography>=42.0          # encrypt tenant Meta access tokens at rest (SEC-02)
+
+# HTTP (Meta API calls)
+requests>=2.31
+
+# Email (handoff) — swap for SendGrid/SES backend in prod
+# Uses Django's built-in email framework by default
+
+# Production server
+gunicorn>=21.2
