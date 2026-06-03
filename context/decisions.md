@@ -14,6 +14,38 @@ Consequences: <what it affects>
 
 ---
 
+## D-106 — Secrets management in production   [DECIDED]
+Date: 2026-06-04 · Owner: Dev 1
+Context: `.env` files are fine for local dev but are not a production secret store. The
+encryption key (SEC-02) and tenant Meta tokens must be protected in prod.
+Decision: Dev uses `.env`. **Production** sources the encryption key and other secrets
+from a managed secrets store (cloud KMS / Secrets Manager / Vault), injected as env vars
+at runtime — never committed, never stored in the DB. Settings read from env regardless
+of source, so no code differs between dev and prod. The specific provider is chosen at
+deploy time (deferred sub-decision).
+Consequences: Affects D1-06 and deployment. No code change dev↔prod.
+
+## D-105 — Session concurrency control   [DECIDED]
+Date: 2026-06-04 · Owner: Dev 1
+Context: Two inbound messages for the same session can arrive near-simultaneously and
+race on `current_step_id`, double-advancing or corrupting flow state.
+Decision: All session-state reads/writes during flow execution run inside a DB
+transaction using `select_for_update()` to lock the session row, so concurrent events
+for the same session serialize.
+Consequences: Flow engine (D1-13..17) wraps step-resolution + advance in an atomic,
+row-locked transaction. Requires a DB with real row locking — **Postgres** in any shared
+environment (SQLite is dev-only).
+
+## D-104 — Webhook idempotency / dedup   [DECIDED]
+Date: 2026-06-04 · Owner: Dev 2
+Context: Meta retries webhooks; duplicate delivery of the same message is expected.
+Without dedup, a customer could be advanced through the flow twice for one tap.
+Decision: Persist the provider message id on each inbound message and enforce uniqueness
+per (tenant, channel, provider_message_id). On receipt of an already-seen id, ack 200 and
+skip processing (idempotent).
+Consequences: `messages` gains `provider_message_id` + a unique constraint; the webhook
+worker checks before processing. Affects channels (D2-05..08) + conversations (D1-08).
+
 ## D-103 — Live flow-change behaviour (T-03)   [OPEN]
 Date: 2026-06-03 · Owner: Dev 1
 Context: When the product owner edits a live flow, how are **active sessions** handled?

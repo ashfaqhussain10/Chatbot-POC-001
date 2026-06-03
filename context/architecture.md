@@ -46,10 +46,23 @@
 - Meta API send error: log; don't retry 4xx; retry once on 5xx.
 - Session `current_step_id` points to deleted step → reset to start, send greeting, log recovery.
 
+## Production hardening (cross-cutting) — D-104/105/106
+These apply across modules; do not treat as optional polish.
+- **Idempotency (D-104).** Meta retries webhooks; the same message *will* arrive twice.
+  Store the provider message id; uniqueness per (tenant, channel, provider_message_id).
+  Already-seen id → ack 200 and skip. Prevents double-advancing the flow.
+- **Session concurrency (D-105).** Flow execution reads + advances session state inside a
+  DB transaction with `select_for_update()` on the session row, so two near-simultaneous
+  messages for one session serialize instead of racing. Needs Postgres row locking in any
+  shared env (SQLite = dev only).
+- **Secrets in prod (D-106).** Encryption key + tokens come from a managed secrets store
+  (KMS/Vault) injected as env vars in prod; `.env` is dev-only. Settings read from env
+  either way — no code change dev↔prod.
+
 ## Data models (section 8 of PRD)
 - **tenants** — id, name, wa_phone_number, wa_access_token (enc), ig_account_id, ig_access_token (enc), handoff_enabled, handoff_email, greeting_message, closing_message, is_active, created_at
 - **flow_steps** — id, tenant_id (FK), label, message_text, is_start, is_terminal, created_at. Exactly one `is_start=true` per tenant.
 - **flow_options** — id, step_id (FK), button_label (≤20 chars), next_step_id (FK, nullable=terminal)
-- **sessions** — id, tenant_id (FK), channel, customer_identifier, current_step_id (FK), status (active|completed|handed_off), started_at, updated_at
-- **messages** — id, session_id (FK), direction (inbound|outbound), content, channel, sent_at
+- **sessions** — id, tenant_id (FK), channel, customer_identifier, current_step_id (FK), status (active|completed|handed_off), started_at, updated_at. Accessed via `select_for_update()` during flow execution (D-105).
+- **messages** — id, session_id (FK), direction (inbound|outbound), content, channel, provider_message_id (inbound; unique per tenant+channel for dedup, D-104), sent_at
 - **audit_logs** — id, admin_user_id, action, entity_type, entity_id, diff (JSON), created_at
