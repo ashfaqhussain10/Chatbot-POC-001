@@ -14,6 +14,49 @@ Consequences: <what it affects>
 
 ---
 
+## D-108 — Deployment & infrastructure (≈$5/mo app host, rest free)   [DECIDED]
+Date: 2026-06-08 · Owner: Dev 1 + PO
+Context: Need a production-reliable backend for ≤15 tenants in ~2 months, mostly free tier.
+Webhooks require an **always-on** host (free hosts sleep → dropped webhooks). Celery's
+Redis polling busts free Redis command quotas; an always-on backend would also bust Neon's
+free **compute-hour** budget.
+Decision:
+- **App + worker host: Railway** (~$5/mo) — one always-on deploy running web (gunicorn) +
+  the queue worker. No sleep → webhooks never missed (NFR-02).
+- **Database: Supabase** (free, **always-on** Postgres) — chosen over Neon, whose free
+  tier meters compute hours and would be exceeded by a 24/7 backend.
+- **Queue: django-q2** (database-backed) — replaces Celery + Redis. Fewer services, fully
+  free, ample at this scale. **Supersedes the Celery+Redis part of D-001.**
+- **Frontend host: Cloudflare Pages / Vercel** (free, always-on CDN) for the React SPA.
+- **Email: Resend / Brevo** (free tier) for handoff.
+Consequences:
+- Total cost ≈ $5/mo; everything except the app host is free.
+- Remove Celery/Redis wiring (`config/celery.py`, `CELERY_*` settings, deps); add django-q2.
+- Row locking (D-105) still works — Supabase is Postgres.
+- Secrets (D-106) sourced from Railway environment variables.
+- `requirements.txt`, settings, and the queue task code change accordingly (next slice).
+
+## D-107 — Frontend = custom React SPA (supersedes Django-admin plan)   [DECIDED]
+Date: 2026-06-08 · Owner: Dev 1 + PO
+Context: The "Relay" frontend handoff designs a fully custom, branded admin console
+(login, dashboard, clients, client detail with Settings / Flow builder / Conversations
+tabs, plus a live phone preview). Django's built-in admin cannot render this. Earlier
+guidance (D-001 / architecture §5) assumed Django admin for CRUD/config/logs + a custom
+flow builder only.
+Decision: Build a **custom React SPA** against the **Django + DRF admin API** (C-06),
+with **JWT (token) auth** and CORS. Django admin is **retained for internal dev/debug
+only**, not the product UI. Team is comfortable with React (low risk). The **live phone
+preview/simulator is Phase 2** — build the functional admin screens first.
+Consequences:
+- Supersedes the "Django admin for FR-15/16/18" portion of D-001 and architecture §5.
+- **Elevates the Admin API (C-06):** every screen needs REST endpoints + serializers.
+- Adds a frontend stack: separate React app, CORS config, JWT auth, its own build/deploy.
+- Dev 3's scope shifts from "Django admin config screens" to React frontend; the flow
+  builder UI (D1-21..23) becomes React, fed by flow-config endpoints.
+- Timeline: ~3–4 weeks added vs the Django-admin plan.
+- The `admin.py` registrations already built remain useful for internal data inspection.
+- New frontend ticket set required (to be added to the backlog).
+
 ## D-106 — Secrets management in production   [DECIDED]
 Date: 2026-06-04 · Owner: Dev 1
 Context: `.env` files are fine for local dev but are not a production secret store. The
@@ -70,12 +113,16 @@ onboarding can take 1–2 weeks of waiting — start day 1.
 Decision: —
 Consequences: Blocks all WhatsApp integration (FR-01, C-01/C-04).
 
-## D-100 — Credential encryption approach (T-04)   [OPEN]
-Date: 2026-06-03 · Owner: Dev 1
+## D-100 — Credential encryption approach (T-04)   [DECIDED]
+Date: 2026-06-08 · Owner: Dev 1
 Context: Which encryption mechanism + key-management strategy for Meta access tokens.
 Tokens encrypted at rest; key must **not** live in the DB (SEC-02).
-Decision: —
-Consequences: Blocks tenants model finalization + message sender auth.
+Decision: **Fernet** (`cryptography`) via a custom `EncryptedTextField`
+([apps/tenants/fields.py](../apps/tenants/fields.py)) — authenticated symmetric
+encryption, encrypt-on-write / decrypt-on-read. Key from `settings.FERNET_KEY` (env /
+Railway secret in prod; dev-only default in dev settings) — never stored in the DB (D-106).
+Consequences: Implemented in D1-06 (tenants `wa_access_token` / `ig_access_token`).
+Forward-compatible with key rotation (versioned key) if needed later.
 
 ---
 

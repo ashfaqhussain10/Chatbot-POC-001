@@ -109,7 +109,9 @@ The [`context/`](context/) folder is shared team memory. Who writes what:
 | File | Owner | Purpose |
 |------|-------|---------|
 | `context/prd.md` | PRD | Product requirements (source of truth for *what*). |
-| `context/architecture.md` | Architect (Dev 1) | System design, module boundaries, stack. |
+| `context/architecture.md` | Architect (Dev 1) | Technical architecture (the *how*). |
+| `context/security.md` | Senior | Security & access model; guardrails (SEC-01..05). |
+| `context/frontend_spec.md` | Dev 1 / Dev 3 | "Relay" admin panel UI spec (React SPA). |
 | `context/decisions.md` | Senior | Running decision log (ADR-style). |
 | `context/task_queue.md` | Senior → Juniors | Tagged backlog (`[S]/[P]/[D]`) for execution. |
 
@@ -122,14 +124,16 @@ the relevant slice — not the whole repo.
 ## 6. Tech stack & conventions
 
 - **Backend:** Django + Django REST Framework (DRF)
-- **Async/queue:** Celery + Redis
-- **Database:** PostgreSQL (relational — flows have structured relationships)
-- **Admin panel:** Django admin for tenant CRUD / config / log views (FR-15/16/18);
-  custom views only for the flow builder (FR-17)
-- **Email (handoff):** Django email framework → SendGrid/SES backend in prod
+- **Async/queue:** **django-q2** (database-backed — no Redis) (D-108)
+- **Database:** **PostgreSQL via Supabase** (free, always-on) (D-108)
+- **Frontend:** **custom React SPA** ("Relay" design) against the DRF API, JWT auth (D-107).
+  Django admin is kept for **internal dev/debug only**, not the product UI.
+- **Email (handoff):** Django email → **Resend / Brevo** (D-108)
+- **Hosting:** **Railway** (always-on app + worker, ~$5/mo) · Supabase (DB) ·
+  Cloudflare Pages/Vercel (SPA) (D-108)
 - **Python:** 3.11 · **Style:** `ruff` + `black` · **Tests:** `pytest` + `pytest-django`
 
-Repo layout (target): `config/` (Django project), `apps/{tenants,flows,conversations,channels,handoff,audit}/`, `context/`, `docs/`.
+Repo layout (target): `config/` (Django project), `apps/{tenants,flows,conversations,channels,handoff,audit}/`, `frontend/` (React SPA), `context/`, `docs/`.
 
 ---
 

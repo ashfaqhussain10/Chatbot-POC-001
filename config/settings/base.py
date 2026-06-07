@@ -16,7 +16,7 @@ env = environ.Env(
 environ.Env.read_env(BASE_DIR / ".env")
 
 # --- Core ---
-SECRET_KEY = env("DJANGO_SECRET_KEY", default="dev-insecure-key-change-me")
+SECRET_KEY = env("DJANGO_SECRET_KEY", default="dev-insecure-key-change-me-not-for-production-0123456789")
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 
@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third party
     "rest_framework",
+    "django_q",
     # Local apps
     "apps.tenants",
     "apps.flows",
@@ -79,13 +80,31 @@ DATABASES = {
     )
 }
 
-# --- Celery / Redis (D1-03) ---
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL)
-CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
+# --- Async queue: django-q2 (DB-backed broker — no Redis) — D-108 ---
+Q_CLUSTER = {
+    "name": "chatbot_platform",
+    "orm": "default",          # use the Django database as the broker
+    "workers": 2,
+    "timeout": 60,
+    "retry": 120,              # must exceed timeout
+    "max_attempts": 3,         # ERR-02: retry up to 3 times
+    "catch_up": False,
+    "save_limit": 250,
+}
+
+# --- DRF + JWT auth (D1-11) ---
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+}
+
+# --- Credential encryption (D1-06 / SEC-02 / D-100 = Fernet) ---
+# Key from env; never stored in the DB (D-106). dev.py sets a dev-only default.
+FERNET_KEY = env("FERNET_KEY", default="")
 
 # --- Auth password validation ---
 AUTH_PASSWORD_VALIDATORS = [

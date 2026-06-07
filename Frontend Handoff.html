@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Relay — Frontend Handoff · Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --ink:       #1b1f26;
+  --ink2:      #52596a;
+  --ink3:      #8b93a1;
+  --bg:        #f4f5f7;
+  --surface:   #ffffff;
+  --border:    #e6e8ed;
+  --accent:    oklch(0.52 0.13 256);
+  --accent-w:  oklch(0.95 0.025 256);
+  --ok:        oklch(0.42 0.10 155);
+  --ok-w:      oklch(0.94 0.03 155);
+  --warn:      oklch(0.50 0.12 70);
+  --warn-w:    oklch(0.95 0.04 70);
+  --danger:    oklch(0.46 0.14 25);
+  --danger-w:  oklch(0.95 0.04 25);
+  --font:      "Plus Jakarta Sans", system-ui, sans-serif;
+  --mono:      "JetBrains Mono", ui-monospace, monospace;
+  --r:         10px;
+  --r-lg:      14px;
+  --sh:        0 1px 3px rgba(20,24,33,.07), 0 1px 2px rgba(20,24,33,.05);
+  --sh-lg:     0 8px 28px rgba(20,24,33,.12), 0 2px 8px rgba(20,24,33,.07);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; scroll-behavior: smooth; }
+body { font-family: var(--font); color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; line-height: 1.55; }
+
+/* ── layout ── */
+.page { max-width: 1080px; margin: 0 auto; padding: 48px 32px 120px; }
+
+/* ── cover ── */
+.cover { background: var(--accent); border-radius: var(--r-lg); padding: 36px 40px; color: #fff; margin-bottom: 52px; display: flex; gap: 32px; align-items: flex-start; }
+.cover-logo { width: 48px; height: 48px; background: rgba(255,255,255,.18); border-radius: 14px; display: grid; place-items: center; flex: none; }
+.cover-logo svg { width: 26px; height: 26px; }
+.cover-body { flex: 1; }
+.cover h1 { font-size: 28px; font-weight: 800; letter-spacing: -.03em; margin-bottom: 6px; }
+.cover .sub { opacity: .82; font-size: 15px; max-width: 60ch; margin-bottom: 18px; }
+.cover-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.cover-tag { background: rgba(255,255,255,.18); border-radius: 100px; padding: 3px 12px; font-size: 12.5px; font-weight: 700; letter-spacing: .01em; }
+.cover-meta { display: flex; flex-direction: column; gap: 5px; text-align: right; flex: none; opacity: .8; font-size: 13px; }
+
+/* ── section ── */
+.section { margin-bottom: 64px; }
+.section-label { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink3); margin-bottom: 14px; display: flex; align-items: center; gap: 9px; }
+.section-label::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+h2 { font-size: 22px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 6px; }
+h3 { font-size: 17px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+h4 { font-size: 13.5px; font-weight: 800; letter-spacing: .01em; text-transform: uppercase; color: var(--ink2); margin-bottom: 8px; margin-top: 20px; }
+p { color: var(--ink2); font-size: 14px; max-width: 70ch; margin-bottom: 14px; line-height: 1.6; }
+p:last-child { margin-bottom: 0; }
+
+/* ── fr badge ── */
+.fr { display: inline-flex; align-items: center; gap: 4px; background: var(--accent-w); color: var(--accent); border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 800; font-family: var(--mono); }
+
+/* ── nav flow diagram ── */
+.flow-diagram { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 28px 32px; box-shadow: var(--sh); overflow-x: auto; }
+.flow-row { display: flex; align-items: center; gap: 0; flex-wrap: nowrap; }
+.flow-node { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: none; }
+.flow-box { background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--r); padding: 9px 16px; font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; text-align: center; min-width: 110px; }
+.flow-box.start { border-color: var(--accent); background: var(--accent-w); color: var(--accent); }
+.flow-box.sub { font-size: 12px; background: var(--surface); min-width: 96px; padding: 7px 12px; }
+.flow-box.modal { border-style: dashed; font-size: 12px; min-width: 96px; padding: 7px 12px; }
+.flow-arrow { width: 28px; height: 2px; background: var(--border); flex: none; position: relative; }
+.flow-arrow::after { content: "▶"; position: absolute; right: -7px; top: -6px; font-size: 9px; color: var(--ink3); }
+.flow-arrow.down { width: 2px; height: 22px; background: var(--border); }
+.flow-arrow.down::after { content: "▼"; right: -6px; bottom: -9px; top: auto; }
+.flow-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.flow-sub-row { display: flex; gap: 0; align-items: center; }
+
+/* ── screen block ── */
+.screen-block { margin-bottom: 52px; }
+.screen-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+.screen-num { width: 34px; height: 34px; background: var(--accent); color: #fff; border-radius: 10px; display: grid; place-items: center; font-size: 14px; font-weight: 800; flex: none; margin-top: 2px; }
+.screen-title-wrap { flex: 1; }
+.screen-title-wrap h3 { margin-bottom: 4px; }
+.screen-title-wrap .desc { color: var(--ink2); font-size: 14px; max-width: 68ch; }
+.fr-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+
+.screen-body { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.screen-body.wide { grid-template-columns: 3fr 2fr; }
+.screen-body.full { grid-template-columns: 1fr; }
+
+/* ── screenshot ── */
+.ss-wrap { border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--sh-lg); background: var(--surface); }
+.ss-wrap img { width: 100%; display: block; }
+.ss-caption { font-size: 11.5px; color: var(--ink3); font-weight: 600; padding: 7px 12px; border-top: 1px solid var(--border); background: var(--bg); }
+
+/* ── annotation cards ── */
+.annotations { display: flex; flex-direction: column; gap: 10px; }
+.anno { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 13px 14px; box-shadow: var(--sh); }
+.anno-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.anno-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 800; flex: none; }
+.anno-dot.ok { background: var(--ok); }
+.anno-dot.warn { background: var(--warn); }
+.anno-dot.danger { background: var(--danger); }
+.anno-dot.neutral { background: var(--ink3); }
+.anno-label { font-size: 13px; font-weight: 800; }
+.anno-body { font-size: 12.5px; color: var(--ink2); line-height: 1.5; }
+.anno-body code { font-family: var(--mono); font-size: 11.5px; background: var(--bg); padding: 1px 5px; border-radius: 4px; color: var(--ink); }
+.anno-body ul { padding-left: 16px; margin: 4px 0; }
+.anno-body ul li { margin-bottom: 2px; }
+
+/* ── rule table ── */
+.rule-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.rule-table th { text-align: left; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink3); padding: 0 14px 9px; }
+.rule-table td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+.rule-table td:first-child { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent); }
+.rule-table td:nth-child(2) { font-weight: 700; }
+.rule-table td:last-child { color: var(--ink2); }
+
+/* ── interaction table ── */
+.ix-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ix-table th { text-align: left; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink3); padding: 0 14px 9px; }
+.ix-table td { padding: 11px 14px; border-top: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+.ix-table tr:hover td { background: var(--bg); }
+.ix-table .action { font-weight: 700; }
+.ix-table .result { color: var(--ink2); }
+
+/* ── state chips ── */
+.states { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.state { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 13px; font-size: 13px; }
+.state .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.state .name { font-weight: 700; }
+.state .desc { color: var(--ink2); font-size: 12px; }
+
+/* ── card wrapper ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px 22px; box-shadow: var(--sh); }
+
+/* ── component spec ── */
+.comp-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.comp-row:last-child { border-bottom: none; }
+.comp-name { width: 160px; flex: none; font-size: 13px; font-weight: 800; }
+.comp-detail { flex: 1; font-size: 12.5px; color: var(--ink2); line-height: 1.5; }
+.comp-detail code { font-family: var(--mono); font-size: 11.5px; background: var(--bg); padding: 1px 5px; border-radius: 4px; color: var(--ink); }
+
+/* ── footer ── */
+.footer { border-top: 1px solid var(--border); padding-top: 24px; color: var(--ink3); font-size: 13px; display: flex; gap: 20px; align-items: center; }
+.footer strong { color: var(--ink2); }
+
+/* ── print ── */
+@media print {
+  body { background: #fff; }
+  .page { max-width: none; padding: 24px; }
+  .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .screen-body { break-inside: avoid; }
+}
+</style>
+<template id="__bundler_thumbnail" data-bg-color="#3a5fd9">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#3a5fd9"/>
+    <!-- logo mark -->
+    <rect x="540" y="220" width="120" height="120" rx="32" fill="rgba(255,255,255,0.18)"/>
+    <path d="M576 280 v72 M612 256 a36 36 0 1 1 0 48 M576 328 a28 28 0 1 0 0-48" stroke="white" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <!-- wordmark -->
+    <text x="600" y="410" font-family="sans-serif" font-size="52" font-weight="800" fill="white" text-anchor="middle">Relay</text>
+    <text x="600" y="458" font-family="sans-serif" font-size="22" fill="rgba(255,255,255,0.75)" text-anchor="middle">Frontend Handoff · Admin Panel</text>
+  </svg>
+</template>
+</head>
+<body>
+<div class="page">
+
+<!-- ══════════════════════════════════════════════
+     COVER
+══════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 3v12M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM15 6a9 9 0 0 1-9 9"/>
+    </svg>
+  </div>
+  <div class="cover-body">
+    <h1>Relay — Frontend Handoff</h1>
+    <div class="sub">Admin panel visual &amp; interaction spec. Covers all five product-owner screens: Login, Dashboard, Tenant list / create, Per-client config, Flow builder, and Conversation log viewer. Cross-referenced to FR tickets.</div>
+    <div class="cover-tags">
+      <span class="cover-tag">Admin Panel only</span>
+      <span class="cover-tag">Customers use WhatsApp / Instagram natively — no chat UI to build</span>
+      <span class="cover-tag">FR-01 · FR-15 · FR-16 · FR-17 · FR-18</span>
+      <span class="cover-tag">Multi-tenant · Rule-based · WhatsApp + Instagram</span>
+    </div>
+  </div>
+  <div class="cover-meta">
+    <span><strong>Version</strong> 1.0</span>
+    <span><strong>Date</strong> June 8 2026</span>
+    <span><strong>Status</strong> Ready for review</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCOPE NOTE
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Scope clarification</div>
+  <div class="card">
+    <h3 style="margin-bottom:10px">What this spec covers — and what it doesn't</h3>
+    <p>The <strong>only custom UI to build is the admin panel</strong> — the product owner's screens for managing tenants and their flows. Customers interact through WhatsApp and Instagram's own native apps; no chat UI is needed from us.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+      <div style="background:var(--ok-w);border-radius:var(--r);padding:14px 16px;">
+        <div style="font-weight:800;color:var(--ok);margin-bottom:8px;font-size:13.5px;">✓ In scope — build this</div>
+        <ul style="font-size:13px;color:var(--ink2);padding-left:16px;line-height:1.8;">
+          <li>Login screen (FR-01)</li>
+          <li>Dashboard / overview</li>
+          <li>Tenant list + create/edit (FR-15, FR-16)</li>
+          <li>Per-client config: greeting, closing, handoff toggle</li>
+          <li>Flow builder — steps, buttons, linking (FR-17)</li>
+          <li>Conversation log viewer (FR-18)</li>
+        </ul>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;">
+        <div style="font-weight:800;color:var(--ink3);margin-bottom:8px;font-size:13.5px;">✗ Out of scope — platform handles it</div>
+        <ul style="font-size:13px;color:var(--ink3);padding-left:16px;line-height:1.8;">
+          <li>Any chat / messaging UI</li>
+          <li>WhatsApp / Instagram client rendering</li>
+          <li>Phone frames or simulated device views</li>
+          <li>Customer-facing onboarding</li>
+          <li>Agent / support inbox (handoff destination)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     NAVIGATION MAP
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Navigation</div>
+  <h2 style="margin-bottom:4px">Screen flow</h2>
+  <p>Linear: Login → Dashboard. From the sidebar, navigate to Clients. Any client row opens the client detail view with three tabs.</p>
+  <div class="flow-diagram" style="margin-top:18px;">
+    <!-- Row 1 -->
+    <div class="flow-row" style="margin-bottom:24px;gap:0;">
+      <div class="flow-node">
+        <div class="flow-box start">Login</div>
+        <div style="font-size:11px;color:var(--ink3);font-weight:600;margin-top:4px;">FR-01</div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node">
+        <div class="flow-box">Dashboard</div>
+        <div style="font-size:11px;color:var(--ink3);font-weight:600;margin-top:4px;">Overview</div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node">
+        <div class="flow-box">Clients list</div>
+        <div style="font-size:11px;color:var(--ink3);font-weight:600;margin-top:4px;">FR-15</div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-col">
+        <div class="flow-row" style="gap:0;">
+          <div class="flow-node">
+            <div class="flow-box">Client detail</div>
+            <div style="font-size:11px;color:var(--ink3);font-weight:600;margin-top:4px;">3 tabs below</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Tabs row -->
+    <div style="margin-left:446px;display:flex;gap:12px;align-items:flex-start;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div style="width:2px;height:18px;background:var(--border)"></div>
+        <div class="flow-box sub" style="border-color:var(--accent);background:var(--accent-w);color:var(--accent);">Settings</div>
+        <div style="font-size:11px;color:var(--ink3);font-weight:600;">FR-05 / FR-11</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div style="width:2px;height:18px;background:var(--border)"></div>
+        <div class="flow-box sub" style="border-color:var(--accent);background:var(--accent-w);color:var(--accent);">Flow builder</div>
+        <div style="font-size:11px;color:var(--ink3);font-weight:600;">FR-17</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div style="width:2px;height:18px;background:var(--border)"></div>
+        <div class="flow-box sub" style="border-color:var(--accent);background:var(--accent-w);color:var(--accent);">Conversations</div>
+        <div style="font-size:11px;color:var(--ink3);font-weight:600;">FR-18</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;margin-left:24px;">
+        <div style="width:2px;height:18px;background:var(--border)"></div>
+        <div class="flow-box modal">+ New client modal</div>
+        <div style="font-size:11px;color:var(--ink3);font-weight:600;">FR-16 · from list</div>
+      </div>
+    </div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--ink3);">
+      <strong style="color:var(--ink2);">Navigation rules:</strong>
+      Session persists until explicit sign-out. The sidebar is always visible post-login. Clicking a client from the Dashboard card grid also opens the Client detail view, defaulting to the Flow builder tab. Back arrow (←) in the client header returns to Clients list.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 1 — LOGIN
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Screen 1</div>
+  <div class="screen-block">
+    <div class="screen-header">
+      <div class="screen-num">1</div>
+      <div class="screen-title-wrap">
+        <h3>Login</h3>
+        <div class="desc">Single-account product owner sign-in. No public registration. No password reset in v1.</div>
+        <div class="fr-row"><span class="fr">FR-01</span></div>
+      </div>
+    </div>
+    <div class="screen-body" style="grid-template-columns:1fr 1.2fr;gap:24px;">
+      <div class="ss-wrap">
+        <img src="01-login.png" alt="Login screen" />
+        <div class="ss-caption">Login — centred card, full-viewport grey background</div>
+      </div>
+      <div class="annotations">
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">1</div><span class="anno-label">Layout</span></div>
+          <div class="anno-body">Full-viewport centred card on neutral <code>#f4f5f7</code> background. Card is 360px wide. Logo + wordmark above card. HTTPS-only notice below.</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">2</div><span class="anno-label">Fields</span></div>
+          <div class="anno-body">Email + Password. Both required. Submit on Enter or button click. No client-side validation needed beyond "non-empty" — server handles credential check.</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot warn">3</div><span class="anno-label">Error state</span></div>
+          <div class="anno-body">On bad credentials: red border on both fields + inline error text beneath the form. Button re-enables immediately after error. No lockout in v1.</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot neutral">4</div><span class="anno-label">Loading state</span></div>
+          <div class="anno-body">Button shows a spinner and becomes disabled on submit. Re-enables on error or redirect.</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot ok">5</div><span class="anno-label">On success</span></div>
+          <div class="anno-body">Redirect to Dashboard. Session cookie / JWT persisted so refresh keeps the user logged in.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 2 — DASHBOARD
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Screen 2</div>
+  <div class="screen-block">
+    <div class="screen-header">
+      <div class="screen-num">2</div>
+      <div class="screen-title-wrap">
+        <h3>Dashboard</h3>
+        <div class="desc">Platform overview. At-a-glance stats, a "how it works" explainer, and client cards. Entry point for navigating to a client.</div>
+      </div>
+    </div>
+    <div class="screen-body wide">
+      <div class="ss-wrap">
+        <img src="02-dashboard.png" alt="Dashboard" />
+        <div class="ss-caption">Dashboard — stat grid + client cards</div>
+      </div>
+      <div class="annotations">
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">A</div><span class="anno-label">App shell</span></div>
+          <div class="anno-body">Persistent across all post-login screens: <ul><li>Top bar: logo + breadcrumb + account info</li><li>Left sidebar (218px): Dashboard, Clients nav + live/total hint</li><li>Main content area (scrollable)</li></ul></div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">B</div><span class="anno-label">Stat tiles</span></div>
+          <div class="anno-body">4-column grid. Values: active/total clients, total conversations, human handoffs, channel split (WA · IG). All computed from session data — no separate API call needed in v1.</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">C</div><span class="anno-label">Client cards</span></div>
+          <div class="anno-body">Auto-fill responsive grid. Each card shows: emoji, name, phone number, Live/Inactive badge, step count, chat count, handoff status. Entire card is clickable → opens Client detail (Flow builder tab by default).</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot neutral">D</div><span class="anno-label">Empty state</span></div>
+          <div class="anno-body">If no clients exist: replace card grid with a centred empty state — icon, "No clients yet", CTA button → opens Create client modal.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 3 — CLIENTS LIST
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Screen 3</div>
+  <div class="screen-block">
+    <div class="screen-header">
+      <div class="screen-num">3</div>
+      <div class="screen-title-wrap">
+        <h3>Clients list <span class="fr">FR-15</span></h3>
+        <div class="desc">Table of all tenants. Primary management surface. "New client" button opens the create modal.</div>
+      </div>
+    </div>
+    <div class="screen-body wide">
+      <div class="ss-wrap">
+        <img src="03-clients-list.png" alt="Clients list" />
+        <div class="ss-caption">Clients list — sortable table rows, status badges</div>
+      </div>
+      <div class="annotations">
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">A</div><span class="anno-label">Table columns</span></div>
+          <div class="anno-body">Business (emoji + name) · WhatsApp number · Instagram account · Handoff (Email badge / Off) · Flow (N steps chip) · Status (Live / Inactive). Chevron (›) at row end indicates clickability.</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">B</div><span class="anno-label">Row interaction</span></div>
+          <div class="anno-body">Clicking any cell of a row navigates to Client detail → defaults to Flow builder tab. Hover background tint: <code>var(--surface-2)</code>.</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">C</div><span class="anno-label">New client button</span></div>
+          <div class="anno-body">Primary button top-right. Opens the Create client modal (see below). Creates an isolated tenant with a minimal starter flow — no redeployment needed.</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot neutral">D</div><span class="anno-label">Empty state</span></div>
+          <div class="anno-body">Empty table body shows: "No clients yet — add your first one" with a centred CTA.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 3b — CREATE CLIENT MODAL
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Screen 3b — modal</div>
+  <div class="screen-block">
+    <div class="screen-header">
+      <div class="screen-num" style="background:var(--ink2);">3b</div>
+      <div class="screen-title-wrap">
+        <h3>Create client modal <span class="fr">FR-16</span></h3>
+        <div class="desc">Appears over the Clients list. Centred, scrim behind. Dismissable by clicking scrim or Cancel. Create button disabled until Business name has ≥ 2 chars.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:18px;">
+      <h4 style="margin-top:0;">Modal anatomy</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px;">Fields</div>
+          <div class="comp-row"><div class="comp-name">Business name</div><div class="comp-detail">Required, ≥ 2 chars. Used for greeting auto-fill: <code>"Hi 👋 Thanks for messaging {name}!"</code></div></div>
+          <div class="comp-row"><div class="comp-name">WhatsApp number</div><div class="comp-detail">Optional at creation. E.164 format validated on save. Displayed in table.</div></div>
+          <div class="comp-row"><div class="comp-name">Instagram account</div><div class="comp-detail">Optional. Validated as <code>@handle</code> pattern.</div></div>
+          <div class="comp-row"><div class="comp-name">Handoff email</div><div class="comp-detail">Optional. If provided, <code>handoff_enabled</code> defaults to <code>true</code>.</div></div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px;">On create</div>
+          <ul style="font-size:13px;color:var(--ink2);line-height:1.8;padding-left:16px;">
+            <li>Tenant created with <code>is_active = false</code></li>
+            <li>Starter flow injected: 1 step, 2 placeholder buttons</li>
+            <li>Greeting + closing auto-filled from business name</li>
+            <li>Modal closes; navigates to Client detail → Flow builder tab</li>
+            <li>Toast: "Client created"</li>
+          </ul>
+          <div style="margin-top:14px;font-size:13px;font-weight:700;margin-bottom:6px;">Dismiss</div>
+          <p style="font-size:13px;">Clicking scrim or Cancel closes without saving. No confirmation needed (nothing was committed).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 4 — CLIENT SETTINGS
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Screen 4</div>
+  <div class="screen-block">
+    <div class="screen-header">
+      <div class="screen-num">4</div>
+      <div class="screen-title-wrap">
+        <h3>Client settings tab <span class="fr">FR-05</span> <span class="fr">FR-11</span> <span class="fr">FR-12</span></h3>
+        <div class="desc">Per-tenant configuration. Three sections: Messages, Human handoff, Channels & identity. Auto-save on blur (or explicit Save button — choose one).</div>
+      </div>
+    </div>
+    <div class="screen-body wide">
+      <div class="ss-wrap">
+        <img src="04-screens.png" alt="Client settings" />
+        <div class="ss-caption">Settings tab — messages, handoff toggle, channel identity</div>
+      </div>
+      <div class="annotations">
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">A</div><span class="anno-label">Greeting message</span></div>
+          <div class="anno-body"><span class="fr">FR-05</span> Sent to the customer immediately on first contact, before the flow start step. Free text, no length limit but recommended ≤ 160 chars for WhatsApp rendering. Supports emoji.</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">B</div><span class="anno-label">Closing message</span></div>
+          <div class="anno-body"><span class="fr">FR-12</span> Shown only when the flow reaches a terminal step <em>and</em> handoff is disabled. If handoff is on, this field is still editable but inactive — show a muted note: "Only sent when handoff is off."</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">C</div><span class="anno-label">Handoff toggle</span></div>
+          <div class="anno-body"><span class="fr">FR-11</span> Toggle switch. When on: reveals the handoff email input. When off: hides it. Toggling live updates the preview (if shown). Turning on without an email → show inline warning: "Add a handoff email to enable this."</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">D</div><span class="anno-label">Channels &amp; identity</span></div>
+          <div class="anno-body">Business name, WhatsApp number, Instagram account. Status badge (Active/Inactive) is read-only here — controlled by the "Activate flow" button in Flow builder. Channel connection status shown as green badges.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 5 — FLOW BUILDER
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Screen 5 — most important</div>
+  <div class="screen-block">
+    <div class="screen-header">
+      <div class="screen-num" style="background: oklch(0.52 0.14 256);">5</div>
+      <div class="screen-title-wrap">
+        <h3>Flow builder <span class="fr">FR-17</span></h3>
+        <div class="desc">The core authoring surface. Step list with inline expand-to-edit. Each step = one bot message + N button options, each linking to the next step or ending the flow.</div>
+      </div>
+    </div>
+
+    <!-- Collapsed view -->
+    <div style="margin-bottom:28px;">
+      <h4 style="margin-top:0;">5a — Collapsed view (browse mode)</h4>
+      <div class="screen-body wide">
+        <div class="ss-wrap">
+          <img src="03-05-flow-builder.png" alt="Flow builder collapsed" />
+          <div class="ss-caption">Flow builder — all steps collapsed, valid flow, Active badge</div>
+        </div>
+        <div class="annotations">
+          <div class="anno">
+            <div class="anno-head"><div class="anno-dot ok">✓</div><span class="anno-label">Validation banner</span></div>
+            <div class="anno-body">Top bar shows flow health: green "Flow valid" badge + plain-text confirmation when all checks pass. Red "N issues" badge + error list below when checks fail. Activate/Deactivate button at right — <strong>disabled when flow is invalid and inactive</strong>.</div>
+          </div>
+          <div class="anno">
+            <div class="anno-head"><div class="anno-dot">A</div><span class="anno-label">Step card (collapsed)</span></div>
+            <div class="anno-body">Shows: monospace step ID, step label, START / END badge if applicable, option count chip, option map (button label → target step name). Clicking anywhere on the header expands to edit mode.</div>
+          </div>
+          <div class="anno">
+            <div class="anno-head"><div class="anno-dot">B</div><span class="anno-label">Option map</span></div>
+            <div class="anno-body">Visible when collapsed. Each row: <code>[Button label chip] › [Target step name]</code> or <em>"End flow"</em> in italic. Gives the owner a quick read of the branching logic without opening the editor.</div>
+          </div>
+          <div class="anno">
+            <div class="anno-head"><div class="anno-dot neutral">C</div><span class="anno-label">Add step</span></div>
+            <div class="anno-body">Ghost button below the step list. Creates a new step with a placeholder message, no options, not marked as start. Automatically opens in edit mode.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expanded view -->
+    <div style="margin-bottom:28px;">
+      <h4>5b — Expanded / edit mode (one step open at a time)</h4>
+      <div class="screen-body wide">
+        <div class="ss-wrap">
+          <img src="03-screens.png" alt="Flow builder step expanded" />
+          <div class="ss-caption">Step editor — name, message, start toggle, buttons with targets</div>
+        </div>
+        <div class="annotations">
+          <div class="anno">
+            <div class="anno-head"><div class="anno-dot">A</div><span class="anno-label">Step name</span></div>
+            <div class="anno-body">Internal label, not shown to customers. Any string. Used in the option map targets of other steps.</div>
+          </div>
+          <div class="anno">
+            <div class="anno-head"><div class="anno-dot">B</div><span class="anno-label">Message text</span></div>
+            <div class="anno-body">Sent to the customer when this step is reached. Free text, supports emoji. WhatsApp recommends ≤ 1024 chars; show character count if over 800.</div>
+          </div>
+          <div class="anno">
+            <div class="anno-head"><div class="anno-dot">C</div><span class="anno-label">Start step toggle</span></div>
+            <div class="anno-body">Exactly one step must be the start. Toggling ON automatically toggles OFF any previously marked start step — no multi-select. Toggling OFF the only start step → validation error immediately.</div>
+          </div>
+          <div class="anno">
+            <div class="anno-head"><div class="anno-dot">D</div><span class="anno-label">Button / option rows</span></div>
+            <div class="anno-body">Each row: <code>[Label input 20/20] › [Target step select] [🗑]</code>. Label max 20 chars — counter shown. Target dropdown lists all other steps + "⏹ End flow". "Add option" button appends a new row.</div>
+          </div>
+          <div class="anno">
+            <div class="anno-head"><div class="anno-dot warn">!</div><span class="anno-label">&gt; 3 options warning</span></div>
+            <div class="anno-body">WhatsApp supports max 3 interactive buttons in a single message. If a step has 4+ options, show inline warning: "4+ options → sent as a list message." Still allowed — just flagged.</div>
+          </div>
+          <div class="anno">
+            <div class="anno-head"><div class="anno-dot danger">✕</div><span class="anno-label">Delete step</span></div>
+            <div class="anno-body">Red "Delete step" button at bottom-left of edit panel. No modal confirmation — but any other steps whose options pointed to this step have their <code>next</code> set to <code>null</code> (End flow). This may create new validation errors — shown immediately.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interaction table -->
+    <h4>5c — Flow builder interactions (complete reference)</h4>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="ix-table">
+        <thead><tr><th>User action</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td class="action">Click collapsed step header</td><td class="result">Expands that step into edit mode. If another step was open, it closes (only one step open at a time). No unsaved-changes warning — changes are applied immediately on each keystroke (live save).</td></tr>
+          <tr><td class="action">Edit step name / message</td><td class="result">Live-updates the collapsed card preview. Flow validation re-runs on every change.</td></tr>
+          <tr><td class="action">Toggle "Start step" ON</td><td class="result">Previous start step is un-marked. Badge updates. Validation re-runs.</td></tr>
+          <tr><td class="action">Type in button label</td><td class="result">Character counter updates. At 20 chars, input is capped (no overflow allowed). Counter turns red.</td></tr>
+          <tr><td class="action">Select target step in dropdown</td><td class="result">Option map in collapsed view updates immediately. Validation re-runs (may clear a broken-link error).</td></tr>
+          <tr><td class="action">Click "Add option"</td><td class="result">New row appended: empty label, target = "End flow". Focused on label input.</td></tr>
+          <tr><td class="action">Click 🗑 on option row</td><td class="result">Row removed. Validation re-runs.</td></tr>
+          <tr><td class="action">Click "Delete step"</td><td class="result">Step removed. Broken incoming links set to "End flow". Validation re-runs. Edit panel closes.</td></tr>
+          <tr><td class="action">Click "Add step" (footer)</td><td class="result">New step appended; immediately opened in edit mode.</td></tr>
+          <tr><td class="action">Click "Activate flow" (valid flow)</td><td class="result">Sets <code>is_active = true</code>. Status badge updates to Live. Button changes to "Deactivate flow".</td></tr>
+          <tr><td class="action">Click "Activate flow" (invalid)</td><td class="result">Button is disabled — not clickable. Validation errors remain visible above.</td></tr>
+          <tr><td class="action">Click "Deactivate flow"</td><td class="result">Sets <code>is_active = false</code>. Always allowed regardless of validation state.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Validation rules -->
+    <h4 style="margin-top:28px;">5d — Validation rules (blocks activation)</h4>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="rule-table">
+        <thead><tr><th>Rule ID</th><th>Name</th><th>Condition that triggers the error</th></tr></thead>
+        <tbody>
+          <tr><td>V-01</td><td>No start step</td><td>Zero steps have <code>isStart = true</code>. Cannot activate or even send a greeting.</td></tr>
+          <tr><td>V-02</td><td>Multiple start steps</td><td>More than one step has <code>isStart = true</code>. Should never occur if toggle logic is correct; guard against it anyway.</td></tr>
+          <tr><td>V-03</td><td>Broken link</td><td>An option's <code>next</code> references a step ID that no longer exists (e.g. step was deleted after the link was made).</td></tr>
+          <tr><td>V-04</td><td>Unreachable step</td><td>A step exists but no path from the start step can reach it. It will never be shown to a customer. Still saves; just can't activate.</td></tr>
+          <tr><td>V-05 (soft)</td><td>Button label too long</td><td>Label &gt; 20 chars — input is hard-capped at 20 so this only fires if data was injected. Show as warning, not a blocker.</td></tr>
+          <tr><td>V-06 (soft)</td><td>Too many buttons</td><td>&gt; 3 options on a step — sent as list message instead of buttons. Warn inline on the step, don't block activation.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 6 — CONVERSATION LOGS
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Screen 6</div>
+  <div class="screen-block">
+    <div class="screen-header">
+      <div class="screen-num">6</div>
+      <div class="screen-title-wrap">
+        <h3>Conversation log viewer <span class="fr">FR-18</span></h3>
+        <div class="desc">Per-client read-only log. Each row is one conversation session: channel badge, customer identifier, path taken, timestamp, status.</div>
+      </div>
+    </div>
+    <div class="screen-body wide">
+      <div class="ss-wrap">
+        <img src="05-screens.png" alt="Conversation logs" />
+        <div class="ss-caption">Conversations tab — session list with expandable message thread</div>
+      </div>
+      <div class="annotations">
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">A</div><span class="anno-label">Session row</span></div>
+          <div class="anno-body">Channel badge (WA green / IG purple) · Customer ID (phone or @handle) · Path trail (button labels joined by ›) · Timestamp · Status badge. Sorted newest-first.</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot">B</div><span class="anno-label">Expand to see thread</span></div>
+          <div class="anno-body">Clicking a row expands an inline message thread. Bot messages left-aligned, customer messages right-aligned. System events (e.g. "📧 Handoff email sent") centred in a pill. Closes on re-click.</div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot ok">C</div><span class="anno-label">Status badges</span></div>
+          <div class="anno-body">
+            <div class="states">
+              <div class="state"><div class="dot" style="background:var(--ok)"></div><div><div class="name" style="font-size:12px;">Completed</div><div class="desc">Flow reached end + closing sent</div></div></div>
+              <div class="state"><div class="dot" style="background:var(--warn)"></div><div><div class="name" style="font-size:12px;">Handed off</div><div class="desc">Human notified; bot stopped</div></div></div>
+              <div class="state"><div class="dot" style="background:var(--accent)"></div><div><div class="name" style="font-size:12px;">Active</div><div class="desc">Conversation in progress</div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="anno">
+          <div class="anno-head"><div class="anno-dot neutral">D</div><span class="anno-label">Empty state</span></div>
+          <div class="anno-body">No conversations yet: "No conversations logged yet — run the flow to see logs here." No filter / search in v1.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     GLOBAL STATES
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Global patterns</div>
+  <h2 style="margin-bottom:16px;">States &amp; feedback patterns</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+    <div class="card">
+      <h4 style="margin-top:0;">Toast notifications</h4>
+      <p style="font-size:13px;">Bottom-centre toasts for async confirmations. Auto-dismiss after 2.6s. Dark pill with check icon. Used for: "Client created", "Conversation logged", "Handoff email sent".</p>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0;">Loading states</h4>
+      <p style="font-size:13px;">Button spinner (replace icon + text with spinner, disable button). Skeleton rows for table/list loads. No full-page spinners except initial auth check.</p>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0;">Empty states</h4>
+      <p style="font-size:13px;">Each list / table has a centred empty state with an icon, one-line label, and a CTA where applicable (e.g. "Add your first client"). No blank boxes.</p>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0;">Inline validation (flow builder)</h4>
+      <p style="font-size:13px;">Validation runs on every change — no explicit "Validate" button. Errors surface as a red card above the step list and a red badge in the top banner. Errors clear automatically when resolved.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     DESIGN TOKENS QUICK-REF
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Design tokens</div>
+  <h2 style="margin-bottom:16px;">Colours, type &amp; spacing</h2>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table class="rule-table">
+      <thead><tr><th>Token</th><th>Value</th><th>Usage</th></tr></thead>
+      <tbody>
+        <tr><td>--accent</td><td><code>oklch(0.52 0.13 256)</code></td><td>Primary buttons, active nav, badges, focus rings</td></tr>
+        <tr><td>--accent-weak</td><td><code>oklch(0.96 0.025 256)</code></td><td>Active nav background, badge backgrounds</td></tr>
+        <tr><td>--bg</td><td><code>#f4f5f7</code></td><td>Page background, alternating table rows</td></tr>
+        <tr><td>--surface</td><td><code>#ffffff</code></td><td>Cards, sidebar, modal</td></tr>
+        <tr><td>--border</td><td><code>#e6e8ed</code></td><td>Card borders, table lines, dividers</td></tr>
+        <tr><td>--text / --ink</td><td><code>#1b1f26</code></td><td>Primary text</td></tr>
+        <tr><td>--text-2 / --ink2</td><td><code>#52596a</code></td><td>Secondary / label text</td></tr>
+        <tr><td>--text-3 / --ink3</td><td><code>#8b93a1</code></td><td>Muted, placeholders, section labels</td></tr>
+        <tr><td>--ok</td><td><code>oklch(0.42 0.10 155)</code></td><td>Active/Live/Completed green badges</td></tr>
+        <tr><td>--warn</td><td><code>oklch(0.50 0.12 70)</code></td><td>Handoff/warning amber badges</td></tr>
+        <tr><td>--danger</td><td><code>oklch(0.46 0.14 25)</code></td><td>Validation errors, delete actions</td></tr>
+        <tr><td>Font — UI</td><td><code>Plus Jakarta Sans</code></td><td>400/600/700/800 weights throughout</td></tr>
+        <tr><td>Font — mono</td><td><code>JetBrains Mono</code></td><td>Step IDs, phone numbers, code snippets</td></tr>
+        <tr><td>--radius</td><td><code>11px</code></td><td>Cards, modals, inputs</td></tr>
+        <tr><td>--radius-sm</td><td><code>7px</code></td><td>Buttons, small chips</td></tr>
+        <tr><td>--radius-lg</td><td><code>16px</code></td><td>Modal container, large cards</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════ -->
+<div class="footer">
+  <span><strong>Relay Admin Panel</strong> · Frontend Handoff v1.0</span>
+  <span>June 8, 2026</span>
+  <span>Companion prototype: <code>index.html</code> — interactive, runs real flows</span>
+  <span style="margin-left:auto;"><strong>Tickets covered:</strong> FR-01 · FR-05 · FR-11 · FR-12 · FR-15 · FR-16 · FR-17 · FR-18</span>
+</div>
+
+</div>
+</body>
+</html>

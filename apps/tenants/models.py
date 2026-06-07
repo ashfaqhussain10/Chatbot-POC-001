@@ -1,14 +1,15 @@
 from django.db import models
 
+from .fields import EncryptedTextField
+
 
 class Tenant(models.Model):
     """
     A business client. Parent of all flow / conversation / audit data — every other
     table is FK-scoped to a tenant for isolation (FR-20).
 
-    NOTE: wa_access_token / ig_access_token are intentionally NOT here. They are added
-    in D1-06 as ENCRYPTED fields (SEC-02 / decision D-100) so no plaintext token can
-    ever be stored.
+    Meta access tokens are stored Fernet-encrypted at rest (SEC-02 / D-100) via
+    EncryptedTextField; the key lives in the environment, never the DB (D-106).
     """
 
     name = models.CharField(max_length=255)
@@ -16,6 +17,10 @@ class Tenant(models.Model):
     # Routing keys — how inbound webhooks map to a tenant (FR-01 / FR-04).
     wa_phone_number = models.CharField(max_length=32, unique=True, null=True, blank=True)
     ig_account_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
+
+    # Meta credentials — encrypted at rest (D1-06 / SEC-02). Never logged.
+    wa_access_token = EncryptedTextField(blank=True, default="")
+    ig_access_token = EncryptedTextField(blank=True, default="")
 
     # Per-client config (FR-16).
     greeting_message = models.TextField(blank=True)
