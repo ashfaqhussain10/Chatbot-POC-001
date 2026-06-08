@@ -34,6 +34,9 @@ class Session(models.Model):
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.ACTIVE
     )
+    # True after a terminal step offered "Talk to a human" and we're waiting for the tap
+    # (FR-11). Kept explicit so a SET_NULL'd current_step (deleted step) is unambiguous.
+    awaiting_handoff = models.BooleanField(default=False)
     started_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
