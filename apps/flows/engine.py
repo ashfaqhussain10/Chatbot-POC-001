@@ -14,6 +14,7 @@ from django.db import transaction
 
 from apps.conversations.models import Message, Session
 from apps.conversations.services import get_or_create_session
+from apps.handoff.services import trigger_handoff
 
 
 def _render_step(step):
@@ -61,7 +62,7 @@ def handle_inbound(tenant, channel, customer_identifier, *, text=None, button_la
                 session.status = Session.Status.HANDED_OFF
                 session.awaiting_handoff = False
                 session.save(update_fields=["status", "awaiting_handoff", "updated_at"])
-                # TODO (D1-24): trigger the handoff email via the handoff service.
+                trigger_handoff(session)  # email the business (D1-24 / FR-11)
                 outbounds.append(_msg("confirmation", "Thanks — a human will be in touch shortly."))
             else:
                 outbounds.append(_msg("handoff_offer", "Would you like to talk to a human?", ["Talk to a human"]))

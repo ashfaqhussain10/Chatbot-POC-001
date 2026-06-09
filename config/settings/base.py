@@ -106,6 +106,11 @@ REST_FRAMEWORK = {
 # Key from env; never stored in the DB (D-106). dev.py sets a dev-only default.
 FERNET_KEY = env("FERNET_KEY", default="")
 
+# --- Email: handoff notifications (D1-24 / D-108) ---
+# Console backend by default (prints); prod sets a real backend (Resend/SMTP) via env.
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Relay <noreply@relay.local>")
+
 # --- Auth password validation ---
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

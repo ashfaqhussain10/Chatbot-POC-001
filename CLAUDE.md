@@ -133,7 +133,7 @@ the relevant slice — not the whole repo.
   Cloudflare Pages/Vercel (SPA) (D-108)
 - **Python:** 3.11 · **Style:** `ruff` + `black` · **Tests:** `pytest` + `pytest-django`
 
-Repo layout (target): `config/` (Django project), `apps/{tenants,flows,conversations,channels,handoff,audit}/`, `frontend/` (React SPA), `context/`, `docs/`.
+Repo layout (this **backend** repo): `config/` (Django project), `apps/{tenants,flows,conversations,channels,handoff,audit}/`, `context/`, `docs/`. The **React SPA lives in a separate repo** (D-109) — not in this folder.
 
 ---
 

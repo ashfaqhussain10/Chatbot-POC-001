@@ -14,6 +14,21 @@ Consequences: <what it affects>
 
 ---
 
+## D-109 — Frontend in a separate repository   [DECIDED]
+Date: 2026-06-09 · Owner: PO + Dev 1
+Context: D-107 assumed a monorepo (Django backend at root + a `frontend/` folder). The PO
+wants a clean separation of concerns — the frontend in its own repo, not inside this one.
+Decision: The React SPA lives in a **separate git repository / folder**, independent of
+this backend repo. The two communicate only over the DRF API (JWT + CORS). This backend
+repo contains **no `frontend/` folder**. Build order: **finish the backend first, then the
+frontend.**
+Consequences:
+- Supersedes the "`frontend/` folder / monorepo" part of D-107, architecture §6.1, CLAUDE §6.
+- Backend must enable **CORS** for the SPA origin (`django-cors-headers`) when FE work starts.
+- Fully independent CI/CD + deploys (already so: Railway backend, Cloudflare/Vercel SPA).
+- `context/tasks/dev-frontend-backlog.md` stays here as planning reference; it (and
+  `frontend_spec.md`) can be copied into the frontend repo when it's created.
+
 ## D-108 — Deployment & infrastructure (≈$5/mo app host, rest free)   [DECIDED]
 Date: 2026-06-08 · Owner: Dev 1 + PO
 Context: Need a production-reliable backend for ≤15 tenants in ~2 months, mostly free tier.
@@ -97,21 +112,27 @@ decided and documented **before the flow builder is built**.
 Decision: —
 Consequences: Blocks flow builder (FR-17). Affects flow engine session handling.
 
-## D-102 — Instagram interactive message types (T-02)   [OPEN]
-Date: 2026-06-03 · Owner: Dev 2
-Context: Must assess current Instagram DM API button/quick-reply support and report to
-product owner **before** building the Instagram flow renderer. If unsupported, fallback
-is a numbered text menu (`1`/`2`/`3`), Instagram-only (IG-02).
-Decision: —
-Consequences: Blocks Instagram renderer. Product owner must approve fallback UX.
+## D-102 — Instagram interactive message types (T-02)   [DECIDED]
+Date: 2026-06-09 · Owner: Dev 2
+Context: Must decide Instagram DM button/quick-reply support before the IG renderer.
+Decision: **Instagram via Meta's Graph API (Instagram Messaging) directly** — same Meta
+ecosystem as WhatsApp (D-101). Use native quick-replies / generic-template buttons where
+available; **fallback = numbered text menu** (`1`/`2`/`3`), Instagram-only (IG-02). Exact
+button capability confirmed during channel build; PO approves the fallback UX.
+Consequences: Unblocks the IG renderer (D2-15..18). IG logic must not affect WhatsApp.
 
-## D-101 — Meta BSP selection (T-01)   [OPEN]
-Date: 2026-06-03 · Owner: Product owner + Dev 2
-Context: Must pick a Meta BSP before **any** WhatsApp work begins. Options: 360dialog,
-Twilio, Gupshup. BSP choice changes API endpoint format and auth method. Note: Meta/BSP
-onboarding can take 1–2 weeks of waiting — start day 1.
-Decision: —
-Consequences: Blocks all WhatsApp integration (FR-01, C-01/C-04).
+## D-101 — WhatsApp connection = Meta Cloud API (direct)   [DECIDED]
+Date: 2026-06-09 · Owner: PO + Dev 2
+Context: How to connect WhatsApp — Meta Cloud API directly vs a third-party BSP
+(360dialog/Twilio/Gupshup).
+Decision: **Meta WhatsApp Cloud API directly — no third-party BSP.** Rationale: fits the
+free-tier goal (no per-number BSP fees; only per-conversation messaging with a free
+allowance), lets us **build + test now on Meta's free test number**, and keeps lock-in low
+(our message sender C-04 is provider-agnostic). Onboarding **real** client numbers later
+uses Meta **Embedded Signup** + Business Verification (an ops track, doesn't block code).
+Consequences: Unblocks webhook receiver (C-01) + message sender (C-04). One app-level
+webhook receives all tenants' events, routed by `phone_number_id`. Per-tenant tokens stay
+encrypted (D-100).
 
 ## D-100 — Credential encryption approach (T-04)   [DECIDED]
 Date: 2026-06-08 · Owner: Dev 1

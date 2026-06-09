@@ -183,8 +183,8 @@ static assets, talking to the Django **DRF API** (C-06). Full UI behaviour lives
             Postgres / Redis / email   (as in §6)
 ```
 
-- **Build/deploy:** the SPA is a separate build artifact (`frontend/` app) deployed to a
-  static host/CDN; the Django API deploys as in §6. They are released independently.
+- **Build/deploy:** the SPA is a **separate repository** (D-109), built and deployed to a
+  static host/CDN independently of this backend; the Django API deploys as in §6.
 - **Auth:** JWT. The SPA stores the token and sends it as `Authorization: Bearer …`;
   every admin endpoint enforces it (401 if absent — SEC-05).
 - **CORS:** the API allows the SPA's origin only (locked down in prod).
@@ -198,13 +198,13 @@ static assets, talking to the Django **DRF API** (C-06). Full UI behaviour lives
 
 | Integration | Direction | Auth | Key constraints |
 |-------------|-----------|------|-----------------|
-| **WhatsApp Business API** (via BSP — 360dialog / Twilio / Gupshup, **D-101 open**) | inbound webhook + outbound send | Per-tenant access token (encrypted at rest); app secret for HMAC | **24h window** (WA-03): interactive messages only within 24h of last customer message. Buttons ≤ 3, list ≤ 10, labels ≤ 20 chars (WA-02). GET verification handshake (WA-04). |
-| **Instagram Messaging API** (**D-102 open**) | inbound webhook + outbound send | Per-tenant token; `instagram_manage_messages` + `pages_messaging` via Meta OAuth (IG-03); linked FB Page | Native button support must be assessed; fallback = numbered text menu parsing `1/2/3` (IG-02), Instagram-only. |
+| **WhatsApp Cloud API** (Meta direct, D-101) | inbound webhook + outbound send | Per-tenant access token (encrypted at rest); Meta **app secret** for HMAC | **24h window** (WA-03): interactive messages only within 24h of last customer message. Buttons ≤ 3, list ≤ 10, labels ≤ 20 chars (WA-02). GET verification handshake (WA-04). One webhook for all tenants, routed by `phone_number_id`. |
+| **Instagram Messaging** (Meta Graph API direct, D-102) | inbound webhook + outbound send | Per-tenant token; `instagram_manage_messages` + `pages_messaging` via Meta OAuth (IG-03); linked FB Page | Quick-replies/template buttons where available; fallback = numbered text menu `1/2/3` (IG-02), Instagram-only. |
 | **Email (Resend / Brevo)** | outbound | API key (env / Railway secret) | Transactional only; handoff notifications (FR-11). Free tier ample. |
 
-**BSP note:** the chosen BSP changes the WhatsApp endpoint URL format and auth header
-shape. The message sender (C-04) isolates this behind a per-channel implementation so the
-flow engine is BSP-agnostic.
+**Provider note:** we use Meta directly (no BSP). The message sender (C-04) still isolates
+the send call behind a per-channel implementation, so swapping to a BSP later would touch
+only the sender — the engine and routing stay unchanged.
 
 ---
 

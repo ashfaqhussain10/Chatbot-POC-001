@@ -28,7 +28,9 @@ class Tenant(models.Model):
     handoff_enabled = models.BooleanField(default=False)
     handoff_email = models.EmailField(blank=True)
 
-    is_active = models.BooleanField(default=True)
+    # "Bot is live." New clients start inactive and go live only when a valid flow is
+    # activated (AP-03 / frontend_spec §6). The flow builder's Activate/Deactivate toggles this.
+    is_active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
