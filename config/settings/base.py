@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     # Third party
     "rest_framework",
     "django_q",
+    "corsheaders",
     # Local apps
     "apps.tenants",
     "apps.flows",
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -110,6 +112,17 @@ FERNET_KEY = env("FERNET_KEY", default="")
 # Console backend by default (prints); prod sets a real backend (Resend/SMTP) via env.
 EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Relay <noreply@relay.local>")
+
+# --- CORS: allow the separate React SPA origin (D-109) ---
+CORS_ALLOWED_ORIGINS = env.list(
+    "CORS_ALLOWED_ORIGINS",
+    default=["http://localhost:5173", "http://localhost:3000"],
+)
+
+# --- Meta Cloud API (D-101): webhook security ---
+META_APP_SECRET = env("META_APP_SECRET", default="")              # HMAC of webhook (SEC-01)
+META_WEBHOOK_VERIFY_TOKEN = env("META_WEBHOOK_VERIFY_TOKEN", default="")  # GET verify (WA-04)
+META_GRAPH_VERSION = env("META_GRAPH_VERSION", default="v21.0")
 
 # --- Auth password validation ---
 AUTH_PASSWORD_VALIDATORS = [

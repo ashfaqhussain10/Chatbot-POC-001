@@ -29,7 +29,8 @@ def _msg(kind, text, buttons=None):
     return {"kind": kind, "text": text, "buttons": buttons or []}
 
 
-def handle_inbound(tenant, channel, customer_identifier, *, text=None, button_label=None):
+def handle_inbound(tenant, channel, customer_identifier, *, text=None, button_label=None,
+                   provider_message_id=None):
     """Advance the session for one inbound message; return outbound messages (list of dicts)."""
     outbounds = []
     with transaction.atomic():
@@ -42,6 +43,7 @@ def handle_inbound(tenant, channel, customer_identifier, *, text=None, button_la
             direction=Message.Direction.INBOUND,
             content=text or button_label or "",
             channel=channel,
+            provider_message_id=provider_message_id,
         )
 
         start = tenant.steps.filter(is_start=True).first()
@@ -77,6 +79,15 @@ def handle_inbound(tenant, channel, customer_identifier, *, text=None, button_la
             if start:
                 outbounds.append(_render_step(start))
             return _finish(session, outbounds)
+
+        # IG-02: on Instagram, a numeric reply selects the Nth option (fallback when quick
+        # replies aren't tapped). Instagram-only — WhatsApp logic is unaffected.
+        if (button_label is None and text and channel == Session.Channel.INSTAGRAM
+                and text.strip().isdigit()):
+            opts = list(session.current_step.options.all())
+            idx = int(text.strip()) - 1
+            if 0 <= idx < len(opts):
+                button_label = opts[idx].button_label
 
         # 4) Free text → re-prompt current step; do not advance (FR-08).
         if button_label is None:

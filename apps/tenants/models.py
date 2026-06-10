@@ -16,6 +16,8 @@ class Tenant(models.Model):
 
     # Routing keys — how inbound webhooks map to a tenant (FR-01 / FR-04).
     wa_phone_number = models.CharField(max_length=32, unique=True, null=True, blank=True)
+    # Meta Cloud API routes inbound webhooks by phone_number_id (not the display number).
+    wa_phone_number_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
     ig_account_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
 
     # Meta credentials — encrypted at rest (D1-06 / SEC-02). Never logged.

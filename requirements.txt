@@ -12,6 +12,7 @@ psycopg[binary]>=3.1
 django-environ>=0.11
 cryptography>=42.0                    # Fernet encryption of tenant Meta tokens (SEC-02 / D-100)
 djangorestframework-simplejwt>=5.3   # JWT auth for the admin API (D1-11)
+django-cors-headers>=4.3             # CORS for the separate React SPA (D-109)
 
 # HTTP (Meta API calls)
 requests>=2.31

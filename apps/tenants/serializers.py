@@ -11,6 +11,7 @@ class TenantSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "wa_phone_number",
+            "wa_phone_number_id",
             "ig_account_id",
             "greeting_message",
             "closing_message",

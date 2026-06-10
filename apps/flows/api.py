@@ -1,11 +1,13 @@
 from rest_framework import viewsets
 
+from apps.audit.mixins import AuditLogMixin
+
 from .models import FlowOption, FlowStep
 from .serializers import FlowOptionSerializer, FlowStepSerializer
 
 
-class FlowStepViewSet(viewsets.ModelViewSet):
-    """Flow step CRUD (FR-17). Filter by tenant: ?tenant=<id>."""
+class FlowStepViewSet(AuditLogMixin, viewsets.ModelViewSet):
+    """Flow step CRUD (FR-17), audited. Filter by tenant: ?tenant=<id>."""
 
     serializer_class = FlowStepSerializer
 
@@ -17,8 +19,8 @@ class FlowStepViewSet(viewsets.ModelViewSet):
         return qs
 
 
-class FlowOptionViewSet(viewsets.ModelViewSet):
-    """Flow option (button) CRUD. Filter by step: ?step=<id>."""
+class FlowOptionViewSet(AuditLogMixin, viewsets.ModelViewSet):
+    """Flow option (button) CRUD, audited. Filter by step: ?step=<id>."""
 
     serializer_class = FlowOptionSerializer
 
