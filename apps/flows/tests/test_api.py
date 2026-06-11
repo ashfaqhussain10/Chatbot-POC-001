@@ -31,5 +31,5 @@ class FlowAPITests(APITestCase):
         FlowStep.objects.create(tenant=other, label="s2", message_text="y")
         resp = self.client.get(f"/api/flow-steps/?tenant={self.tenant.id}")
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(len(resp.data), 1)
-        self.assertEqual(resp.data[0]["label"], "s1")
+        self.assertEqual(resp.data["count"], 1)
+        self.assertEqual(resp.data["results"][0]["label"], "s1")

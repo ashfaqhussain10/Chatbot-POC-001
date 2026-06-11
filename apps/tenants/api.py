@@ -13,7 +13,7 @@ class TenantViewSet(AuditLogMixin, viewsets.ModelViewSet):
     """Tenant CRUD + config (FR-15/16). Auth + 401 from the global default (SEC-05).
     All writes are audited (FR-19)."""
 
-    queryset = Tenant.objects.all()
+    queryset = Tenant.objects.all().order_by("name")  # stable paging
     serializer_class = TenantSerializer
 
     @action(detail=True, methods=["get"])

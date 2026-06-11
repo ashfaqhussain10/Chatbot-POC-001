@@ -12,7 +12,7 @@ class FlowStepViewSet(AuditLogMixin, viewsets.ModelViewSet):
     serializer_class = FlowStepSerializer
 
     def get_queryset(self):
-        qs = FlowStep.objects.all().prefetch_related("options")
+        qs = FlowStep.objects.all().prefetch_related("options").order_by("id")  # stable paging
         tenant = self.request.query_params.get("tenant")
         if tenant:
             qs = qs.filter(tenant_id=tenant)
@@ -25,7 +25,7 @@ class FlowOptionViewSet(AuditLogMixin, viewsets.ModelViewSet):
     serializer_class = FlowOptionSerializer
 
     def get_queryset(self):
-        qs = FlowOption.objects.all()
+        qs = FlowOption.objects.all().order_by("id")  # stable paging
         step = self.request.query_params.get("step")
         if step:
             qs = qs.filter(step_id=step)

@@ -1,6 +1,16 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    """JWT login with a dedicated brute-force throttle (rate: "login" scope, 5/min).
+    Overriding throttle_classes replaces the global user/anon throttles for this view."""
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "login"
 
 
 class MeView(APIView):

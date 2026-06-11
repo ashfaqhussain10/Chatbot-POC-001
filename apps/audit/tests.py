@@ -20,7 +20,7 @@ class AuditTests(APITestCase):
         self.client.post("/api/tenants/", {"name": "Acme"}, format="json")
         resp = self.client.get("/api/audit-logs/?entity_type=Tenant")
         self.assertEqual(resp.status_code, 200)
-        self.assertGreaterEqual(len(resp.data), 1)
+        self.assertGreaterEqual(resp.data["count"], 1)
 
     def test_set_tokens_audit_has_no_token_values(self):
         t = self.client.post("/api/tenants/", {"name": "Acme"}, format="json").data

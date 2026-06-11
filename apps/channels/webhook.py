@@ -31,6 +31,9 @@ class WebhookView(APIView):
     # Public endpoint — protected by signature, not by auth (SEC-01).
     authentication_classes = []
     permission_classes = []
+    # NOT throttled: Meta legitimately bursts/retries; rate-limiting here would
+    # silently drop real customer messages. HMAC (SEC-01) is the guard, not limits.
+    throttle_classes = []
 
     def get(self, request):
         # WA-04 verification handshake.

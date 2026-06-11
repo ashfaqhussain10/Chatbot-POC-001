@@ -20,7 +20,7 @@ class SessionAPITests(APITestCase):
         Session.objects.create(tenant=self.tenant, channel="whatsapp", customer_identifier="c1")
         resp = self.client.get(f"/api/sessions/?tenant={self.tenant.id}")
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(len(resp.data), 1)
+        self.assertEqual(resp.data["count"], 1)
 
     def test_sessions_read_only(self):
         self.client.force_authenticate(self.user)
