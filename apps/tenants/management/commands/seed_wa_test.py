@@ -30,10 +30,12 @@ class Command(BaseCommand):
             ))
             return
 
+        # Key on wa_phone_number_id (unique) so re-runs never hit MultipleObjectsReturned;
+        # name is not unique.
         tenant, _ = Tenant.objects.update_or_create(
-            name=TENANT_NAME,
+            wa_phone_number_id=pnid,
             defaults={
-                "wa_phone_number_id": pnid,
+                "name": TENANT_NAME,
                 "wa_access_token": token,            # encrypted on save (SEC-02)
                 "greeting_message": "Hi 👋 Welcome to the Relay WhatsApp test bot!",
                 "closing_message": "Thanks for testing Relay! 🎉",

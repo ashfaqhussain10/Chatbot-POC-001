@@ -82,6 +82,18 @@ DATABASES = {
     )
 }
 
+# --- Cache (DB-backed — no Redis) ---
+# Used by DRF throttling. A shared backend is required so rate limits hold ACROSS
+# gunicorn workers (the default per-process LocMemCache would multiply every limit
+# by the worker count and weaken the login guard). The cache table is created by a
+# migration (tenants/0005) so it exists in every environment, including tests.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_cache",
+    }
+}
+
 # --- Async queue: django-q2 (DB-backed broker — no Redis) — D-108 ---
 Q_CLUSTER = {
     "name": "chatbot_platform",
@@ -117,6 +129,11 @@ REST_FRAMEWORK = {
         "anon": "20/hour",     # unauthenticated surface is tiny
         "login": "5/min",      # JWT token endpoint — brute-force guard
     },
+    # Railway terminates TLS at one proxy hop and sets X-Forwarded-For. Without this,
+    # DRF would trust a client-supplied XFF as the throttle identity — letting an
+    # attacker rotate the header to bypass the login brute-force guard. "1" means:
+    # take the single rightmost (proxy-appended) XFF entry as the real client IP.
+    "NUM_PROXIES": 1,
 }
 
 # --- Credential encryption (D1-06 / SEC-02 / D-100 = Fernet) ---
