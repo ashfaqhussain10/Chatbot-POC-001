@@ -3,12 +3,18 @@ Message sender (C-04) — transmits the flow engine's outbound messages via the 
 WhatsApp Cloud API, per tenant. Provider-agnostic interface so a BSP could be swapped in.
 """
 import logging
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 
 import requests
 from django.conf import settings
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 TIMEOUT = 10
+# WhatsApp interactive/free-form messages are only allowed within 24h of the
+# customer's last message (WA-03). 23h gives a safety margin under Meta's 24h.
+WA_WINDOW = timedelta(hours=23)
 
 
 def _endpoint(phone_number_id):
@@ -95,9 +101,33 @@ def send_instagram(tenant, to, outbound):
     return resp
 
 
-def send_outbounds(tenant, to, channel, outbounds):
-    """Transmit each engine outbound. We only ever reply to an inbound message, so we are
-    always inside the 24h window (WA-03)."""
+def within_wa_window(customer_message_ts):
+    """True if we may still send a WhatsApp free-form/interactive message (WA-03).
+
+    `customer_message_ts` is the customer's message time from Meta's webhook (epoch
+    seconds). None (e.g. no timestamp supplied) is treated as in-window — the normal
+    reactive path is always within seconds of the inbound. Measuring from Meta's
+    timestamp (not our DB insert time) keeps this correct if a message is processed
+    late after a queue/DLQ delay."""
+    if not customer_message_ts:
+        return True
+    try:
+        sent = datetime.fromtimestamp(int(customer_message_ts), tz=dt_timezone.utc)
+    except (TypeError, ValueError):
+        return True
+    return timezone.now() - sent < WA_WINDOW
+
+
+def send_outbounds(tenant, to, channel, outbounds, customer_message_ts=None):
+    """Transmit each engine outbound. For WhatsApp, refuse the whole batch if the 24h
+    window has closed (WA-03): v1 flags + logs and does not attempt templates."""
+    if channel == "whatsapp" and not within_wa_window(customer_message_ts):
+        # SEC-04: log tenant id only, never the customer identifier.
+        logger.warning(
+            "WA-03: 24h window closed for tenant %s; skipping %d outbound message(s).",
+            tenant.id, len(outbounds),
+        )
+        return
     for ob in outbounds:
         if channel == "instagram":
             send_instagram(tenant, to, ob)

@@ -27,6 +27,7 @@ def parse_whatsapp_events(payload):
                     "phone_number_id": phone_number_id,
                     "customer": msg.get("from"),
                     "provider_message_id": msg.get("id"),
+                    "timestamp": msg.get("timestamp"),  # epoch seconds; for the 24h window (WA-03)
                     "text": None,
                     "button_label": None,
                 }

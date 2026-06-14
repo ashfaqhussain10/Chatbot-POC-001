@@ -36,4 +36,7 @@ def process_inbound(event):
         button_label=event.get("button_label"),
         provider_message_id=pmid,
     )
-    send_outbounds(tenant, event["customer"], event["channel"], outbounds)
+    send_outbounds(
+        tenant, event["customer"], event["channel"], outbounds,
+        customer_message_ts=event.get("timestamp"),  # WA-03 24h window check
+    )
